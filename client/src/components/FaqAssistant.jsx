@@ -108,10 +108,9 @@ export default function FaqAssistant() {
                 {msg.text}
                 {msg.sources && msg.sources.length > 0 && (
                   <div className="ym-sources">
+                    <span className="ym-sources-label">RELATED FAQS</span>
                     {msg.sources.slice(0, 3).map((s, si) => (
-                      <div key={si} className="ym-source-item">
-                        <span>{s.question}</span>
-                      </div>
+                      <div key={si} className="ym-source-item">{s.question}</div>
                     ))}
                   </div>
                 )}

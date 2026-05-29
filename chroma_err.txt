@@ -1,0 +1,1 @@
+C:\Users\beldh\AppData\Local\Programs\Python\Python310\python.exe: No module named chromadb.__main__; 'chromadb' is a package and cannot be directly executed

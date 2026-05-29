@@ -1,0 +1,4 @@
+MongoDB connected: ac-ahewmjg-shard-00-00.8hiyp5g.mongodb.net
+FAQs: 132 internship FAQs already exist
+Server running on http://localhost:3000
+Search: Indexed 132 FAQs for semantic search
