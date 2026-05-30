@@ -27,6 +27,7 @@ exports.search = async (req, res, next) => {
 
     const sources = await searchSimilar(trimmed, 5);
     const { answer, confidence } = await generateAnswer(trimmed, sources);
+    console.log(`Query: "${trimmed}" | Sources: ${sources.length} | Confidence: ${confidence}`);
 
     const data = {
       answer,
@@ -47,6 +48,24 @@ exports.search = async (req, res, next) => {
     };
 
     searchCache.set(trimmed, { data, timestamp: Date.now() });
+    // Auto-save unresolved queries
+if (req.user && (sources.length === 0 || confidence < 0.4)) {
+  try {
+    const Query = require('../models/Query');
+    const existing = await Query.findOne({
+      question: { $regex: trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' },
+      status: 'pending'
+    });
+    if (!existing) {
+      await Query.create({
+        user: req.user._id,
+        question: trimmed,
+        category: 'general',
+        status: 'pending'
+      });
+    }
+  } catch (e) {}
+}
 
     res.json({ success: true, ...data });
   } catch (err) {

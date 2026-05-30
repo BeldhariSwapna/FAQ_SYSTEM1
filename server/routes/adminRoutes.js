@@ -11,5 +11,6 @@ router.get('/users/:id', adminController.getUserById);
 router.patch('/users/:id/role', authorizeRoles('super_admin', 'admin'), adminController.updateUserRole);
 router.patch('/users/:id/promote', authorizeRoles('super_admin', 'admin'), adminController.promoteToAdmin);
 router.delete('/users/:id', authorizeRoles('super_admin'), adminController.deleteUser);
+router.get('/stats', adminController.getStats);
 
 module.exports = router;

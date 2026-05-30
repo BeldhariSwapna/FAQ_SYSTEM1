@@ -143,3 +143,23 @@ exports.deleteUser = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getStats = async (req, res, next) => {
+  try {
+    const Question = require('../models/Question');
+    const Answer = require('../models/Answer');
+    const Faq = require('../models/Faq');
+
+    const [totalUsers, totalQuestions, totalAnswers, totalFaqs] = await Promise.all([
+      User.countDocuments(),
+      Question.countDocuments(),
+      Answer.countDocuments(),
+      Faq.countDocuments(),
+    ]);
+
+    res.json({ totalUsers, totalQuestions, totalAnswers, totalFaqs });
+  } catch (err) {
+    next(err);
+  }
+};
+

@@ -16,6 +16,8 @@ const faqRoutes = require('./routes/faqRoutes');
 const queryRoutes = require('./routes/queryRoutes');
 const internshipRoutes = require('./routes/internshipRoutes');
 const searchRoutes = require('./routes/searchRoutes');
+const answerRoutes = require('./routes/answerRoutes');
+const questionRoutes = require('./routes/questionRoutes');
 const { indexAllFaqs } = require('./services/searchService');
 const { errorHandler } = require('./middleware/errorHandler');
 
@@ -49,6 +51,8 @@ app.use('/api/faqs', faqRoutes);
 app.use('/api/queries', queryRoutes);
 app.use('/api/internship', internshipRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/answers', answerRoutes);
+app.use('/api/questions', questionRoutes);
 
 app.all('*', (req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });

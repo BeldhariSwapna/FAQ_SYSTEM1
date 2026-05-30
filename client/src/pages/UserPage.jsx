@@ -33,10 +33,22 @@ export default function UserPage() {
   const [overviewOpen, setOverviewOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
   const [highlightedFaq, setHighlightedFaq] = useState(null);
+  const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const debounceRef = useRef(null);
   const overviewRef = useRef(null);
   const faqRefs = useRef({});
   const searchContainerRef = useRef(null);
+
+  useEffect(() => {
+    const theme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    setDark(theme === 'dark');
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+  }, [dark]);
 
   useEffect(() => {
     fetchAllFAQs();
@@ -60,18 +72,13 @@ export default function UserPage() {
       const { data } = await api.get('/internship/overview');
       if (data.success) setOverview(data.sections);
     } catch {
-      // ignore
     } finally {
       setOverviewLoading(false);
     }
   };
 
   const fetchSuggestions = useCallback(async (q) => {
-    if (!q || q.trim().length < 2) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
+    if (!q || q.trim().length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
     setSuggestionsLoading(true);
     try {
       const data = await getSuggestions(q);
@@ -111,12 +118,7 @@ export default function UserPage() {
   }, []);
 
   const handleSelectSuggestion = useCallback((suggestion) => {
-    if (!suggestion) {
-      setQuery('');
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
+    if (!suggestion) { setQuery(''); setSuggestions([]); setShowSuggestions(false); return; }
     setQuery(suggestion.question);
     setShowSuggestions(false);
     handleSearch(suggestion.question);
@@ -146,241 +148,195 @@ export default function UserPage() {
   const handleLogout = async () => { await logout(); navigate('/login', { replace: true }); };
 
   const showOverview = overviewOpen && !searchFaqIds;
-
-  const sectionContent = (section, i) => {
-    switch (section.type) {
-      case 'lead': return <p key={i} style={{ fontSize: 15, marginBottom: 16, lineHeight: 1.7 }}>{section.content}</p>;
-      case 'heading': return <h3 key={i} style={{ fontSize: 16, fontWeight: 600, margin: '20px 0 10px', color: 'var(--text-primary)' }}>{section.content}</h3>;
-      case 'text': return <p key={i} style={{ marginBottom: 12, lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: section.html }} />;
-      case 'note': return <div key={i} style={{ background: 'var(--accent-light)', padding: 12, borderRadius: 'var(--radius-sm)', marginBottom: 12, borderLeft: '3px solid var(--accent)' }}>{section.content}</div>;
-      case 'tracks': return section.tracks?.map((t, ti) => (
-        <div key={`${i}-${ti}`} style={{ marginBottom: 16 }}><strong style={{ color: 'var(--text-primary)' }}>{t.title}</strong><p style={{ marginTop: 4 }}>{t.content}</p></div>
-      ));
-      case 'table': return (
-        <div key={i} style={{ overflowX: 'auto', marginBottom: 16 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead><tr style={{ background: 'var(--bg-secondary)' }}>
-              {['Badge', 'Phase', 'Description', 'Required?'].map(h => <th key={h} style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600 }}>{h}</th>)}
-            </tr></thead>
-            <tbody>{section.rows?.map((row, ri) => (
-              <tr key={ri}>{row.map((cell, ci) => <td key={ci} style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)' }}>{cell}</td>)}</tr>
-            ))}</tbody>
-          </table>
-        </div>
-      );
-      case 'list': return <ul key={i} style={{ paddingLeft: 20, marginBottom: 12 }}>{section.items?.map((item, li) => <li key={li} style={{ marginBottom: 4 }}>{item}</li>)}</ul>;
-      case 'ordered-list': return <ol key={i} style={{ paddingLeft: 20, marginBottom: 12 }}>{section.items?.map((item, li) => <li key={li} style={{ marginBottom: 4 }}>{item}</li>)}</ol>;
-      default: return null;
-    }
-  };
-
   const displayedFaqs = searchFaqIds ? faqs.filter(f => searchFaqIds.includes(f._id)) : activeCategory ? faqs.filter(f => f.category === activeCategory) : faqs;
-
   const topFaqs = searchFaqIds ? [] : faqs.slice(0, 4);
 
   return (
-    <div className="auth-container" style={{ flexDirection: 'column', minHeight: '100vh' }}>
-      <header style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 24px', borderBottom: '1px solid var(--border)',
-        background: 'var(--bg-card)', backdropFilter: 'blur(16px)'
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+
+      {/* Sidebar */}
+      <div style={{
+        width: 240, background: 'var(--bg-card)', borderRight: '1px solid var(--border)',
+        display: 'flex', flexDirection: 'column', position: 'fixed',
+        top: 0, left: 0, bottom: 0, zIndex: 50
       }}>
-        <div style={{ fontSize: 18, fontWeight: 700 }}>Samagama FAQs</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ cursor: 'pointer' }}>
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-          <div style={{
-            width: 34, height: 34, borderRadius: '50%',
-            background: 'var(--accent)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer'
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', fontSize: 16, fontWeight: 700, color: 'var(--accent)' }}>
+          Samagama FAQs
+        </div>
+        <div style={{ flex: 1, padding: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {[
+            { label: 'FAQ Hub', path: '/user' },
+            { label: 'Dashboard', path: '/dashboard' },
+            { label: 'Ask Question', path: '/ask-question' },
+            { label: 'My Questions', path: '/my-questions' },
+            { label: 'Answer Center', path: '/answer-center' },
+          ].map(({ label, path }) => (
+            <a key={path} href={path} style={{
+              padding: '10px 14px', borderRadius: 'var(--radius-sm)', fontSize: 14,
+              fontWeight: path === '/user' ? 600 : 500,
+              color: path === '/user' ? 'var(--accent)' : 'var(--text-secondary)',
+              background: path === '/user' ? 'var(--accent-light)' : 'transparent',
+              textDecoration: 'none', transition: 'all 150ms ease'
+            }}
+              onMouseOver={e => { if (path !== '/user') { e.currentTarget.style.background = 'var(--accent-light)'; e.currentTarget.style.color = 'var(--accent)'; }}}
+              onMouseOut={e => { if (path !== '/user') { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}}>
+              {label}
+            </a>
+          ))}
+          {user?.role === 'admin' && (
+            <a href="/admin" style={{
+              padding: '10px 14px', borderRadius: 'var(--radius-sm)', fontSize: 14,
+              fontWeight: 500, color: 'var(--text-secondary)', textDecoration: 'none', transition: 'all 150ms ease'
+            }}
+              onMouseOver={e => { e.currentTarget.style.background = 'var(--accent-light)'; e.currentTarget.style.color = 'var(--accent)'; }}
+              onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
+              Admin Area
+            </a>
+          )}
+        </div>
+        <div style={{ padding: 16, borderTop: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2, color: 'var(--text-primary)' }}>{user?.name}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>{user?.role === 'admin' ? 'Administrator' : 'Member'}</div>
+          <button onClick={() => setDark(d => !d)} style={{
+            width: '100%', padding: '8px', marginBottom: 8,
+            border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+            background: 'transparent', color: 'var(--text-secondary)',
+            cursor: 'pointer', fontSize: 13, fontFamily: 'inherit'
           }}>
-            {user?.name?.charAt(0)?.toUpperCase()}
-          </div>
-          <span style={{ fontSize: 14, fontWeight: 500 }}>{user?.name}</span>
+            {dark ? '☀️ Light Mode' : '🌙 Dark Mode'}
+          </button>
           <button onClick={handleLogout} style={{
-            padding: '6px 14px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-            fontSize: 13, background: 'transparent', color: 'var(--text-secondary)',
-            cursor: 'pointer', fontFamily: 'inherit'
+            width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+            fontSize: 13, background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit'
           }}
             onMouseOver={e => { e.currentTarget.style.background = 'var(--error)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'var(--error)'; }}
             onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
             Sign out
           </button>
         </div>
-      </header>
+      </div>
 
-      <div style={{ maxWidth: 720, margin: '0 auto', width: '100%', padding: '32px 24px 60px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 8 }}>How can we help you?</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 15 }}>Search our knowledge base for instant answers</p>
-        </div>
+      {/* Main content */}
+      <div style={{ marginLeft: 240, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <header style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '12px 24px', borderBottom: '1px solid var(--border)',
+          background: 'var(--bg-card)', backdropFilter: 'blur(16px)'
+        }}>
+          <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+            Dashboard / <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>FAQ Hub</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ cursor: 'pointer' }}>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff' }}>
+              {user?.name?.charAt(0)?.toUpperCase()}
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>{user?.name}</span>
+          </div>
+        </header>
 
-        <div ref={searchContainerRef} className="faq-page-search-area" style={{ marginBottom: 24 }}>
-          <SearchBar
-            onSearch={handleSearch}
-            onSelectSuggestion={handleSelectSuggestion}
-            loading={semanticLoading}
-            onQueryChange={handleInputChange}
-            onKeyDown={handleInputKeyDown}
-          />
-          {showSuggestions && (
-            <SearchSuggestions
-              suggestions={suggestions}
-              loading={suggestionsLoading}
-              onSelect={handleSelectSuggestion}
-              selectedIndex={selectedIndex}
-              query={query}
-            />
-          )}
-        </div>
+        <div style={{ maxWidth: 720, margin: '0 auto', width: '100%', padding: '32px 24px 60px' }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 8 }}>How can we help you?</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 15 }}>Search our knowledge base for instant answers</p>
+          </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
-          {CATEGORIES.map(cat => {
-            const isActive = cat === activeCategory;
-            return (
-              <button key={cat} onClick={() => {
-                if (cat === 'programme-overview') {
-                  if (overviewOpen) { setOverviewOpen(false); return; }
-                  setQuery(''); setSearchFaqIds(null); setActiveCategory(null); setOverviewOpen(true);
-                  setTimeout(() => overviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-                } else {
-                  setActiveCategory(isActive ? null : cat); setSearchFaqIds(null); setOverviewOpen(false);
-                }
-              }}
-                style={{
+          <div ref={searchContainerRef} className="faq-page-search-area" style={{ marginBottom: 24 }}>
+            <SearchBar onSearch={handleSearch} onSelectSuggestion={handleSelectSuggestion} loading={semanticLoading} onQueryChange={handleInputChange} onKeyDown={handleInputKeyDown} />
+            {showSuggestions && <SearchSuggestions suggestions={suggestions} loading={suggestionsLoading} onSelect={handleSelectSuggestion} selectedIndex={selectedIndex} query={query} />}
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+            {CATEGORIES.map(cat => {
+              const isActive = cat === activeCategory;
+              return (
+                <button key={cat} onClick={() => {
+                  if (cat === 'programme-overview') {
+                    if (overviewOpen) { setOverviewOpen(false); return; }
+                    setQuery(''); setSearchFaqIds(null); setActiveCategory(null); setOverviewOpen(true);
+                    setTimeout(() => overviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                  } else {
+                    setActiveCategory(isActive ? null : cat); setSearchFaqIds(null); setOverviewOpen(false);
+                  }
+                }} style={{
                   padding: '6px 16px', borderRadius: '20px', border: '1px solid var(--border)',
                   fontSize: 13, fontWeight: isActive ? 600 : 400,
                   background: isActive ? 'var(--accent)' : 'var(--bg-secondary)',
                   color: isActive ? '#fff' : 'var(--text-secondary)',
                   cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms ease', textTransform: 'capitalize'
                 }}
-                onMouseOver={e => { if (!isActive) { e.currentTarget.style.background = 'var(--accent-light)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}}
-                onMouseOut={e => { if (!isActive) { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.borderColor = 'var(--border)'; }}}>
-                {cat === 'programme-overview' ? 'Programme Overview' : cat.replace(/-/g, ' ')}
-              </button>
-            );
-          })}
-        </div>
-
-        {showOverview && (
-          <div ref={overviewRef} style={{
-            background: 'var(--bg-card)', backdropFilter: 'blur(16px)',
-            border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-            overflow: 'hidden', marginBottom: 24
-          }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '20px', borderBottom: '1px solid var(--border)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                </svg>
-                <span style={{ fontSize: 18, fontWeight: 700 }}>Programme Overview</span>
-              </div>
-              <button onClick={() => setOverviewOpen(false)} style={{
-                padding: '6px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-                fontSize: 13, background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
-                cursor: 'pointer', fontFamily: 'inherit'
-              }}>Back</button>
-            </div>
-            <div style={{ padding: '20px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-              {overviewLoading ? (
-                <div style={{ color: 'var(--text-muted)' }}>Loading…</div>
-              ) : overview ? (
-                overview.map((s, i) => sectionContent(s, i))
-              ) : (
-                <p style={{ color: 'var(--text-muted)' }}>Failed to load overview</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {!showOverview && (faqsLoading ? (
-          <div>{[1, 2, 3, 4, 5].map(i => (
-            <div key={i} style={{ height: 48, background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', marginBottom: 8, animation: 'shimmer 1.5s infinite', backgroundImage: 'linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-card) 50%, var(--bg-secondary) 100%)', backgroundSize: '200% 100%' }} />
-          ))}</div>
-        ) : (
-          <div>
-            {!searchFaqIds && !activeCategory && topFaqs.length > 0 && (
-              <>
-                <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)' }}>Trending FAQs</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 28 }}>
-                  {topFaqs.map(faq => (
-                    <div key={faq._id} onClick={() => {
-                      document.querySelector(`details[data-faq-id="${faq._id}"]`)?.scrollIntoView({ behavior: 'smooth' });
-                    }} style={{
-                      padding: '10px 14px', background: 'var(--bg-secondary)',
-                      border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-                      cursor: 'pointer', fontSize: 14, color: 'var(--text-primary)',
-                      transition: 'border-color 150ms ease'
-                    }}
-                      onMouseOver={e => e.currentTarget.style.borderColor = 'var(--accent)'}
-                      onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                      {faq.question}
-                    </div>
-                  ))}
-                </div>
-                <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)' }}>All FAQs</h3>
-              </>
-            )}
-            {activeCategory && (
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'capitalize' }}>
-                Showing: <strong style={{ color: 'var(--text-primary)' }}>{activeCategory.replace(/-/g, ' ')}</strong>
-              </p>
-            )}
-            {displayedFaqs.length === 0 && !faqsLoading && (
-              <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
-                {searchFaqIds ? 'No matching FAQs found for your search.' : 'No FAQs in this category yet.'}
-              </div>
-            )}
-            {displayedFaqs.map(faq => {
-              const matched = searchFaqIds?.includes(faq._id);
-              return (
-                <details key={faq._id} data-faq-id={faq._id} open={!!matched || highlightedFaq === faq._id}
-                  ref={el => { if (el) faqRefs.current[faq._id] = el; }}
-                  onToggle={e => { if (!e.target.open && highlightedFaq === faq._id) setHighlightedFaq(null); }}
-                  style={{
-                    display: searchFaqIds && !matched ? 'none' : 'block',
-                    background: matched ? 'var(--accent-light)' : 'var(--bg-card)',
-                    backdropFilter: 'blur(16px)', border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-md)', marginBottom: 8, overflow: 'hidden'
-                  }}>
-                  <summary style={{
-                    padding: '14px 20px', cursor: 'pointer', fontSize: 14, fontWeight: 500,
-                    color: 'var(--text-primary)'
-                  }}>
-                    {faq.question}
-                  </summary>
-                  <div style={{ padding: '0 20px 16px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                    {faq.answer}
-                  </div>
-                </details>
+                  onMouseOver={e => { if (!isActive) { e.currentTarget.style.background = 'var(--accent-light)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}}
+                  onMouseOut={e => { if (!isActive) { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.borderColor = 'var(--border)'; }}}>
+                  {cat === 'programme-overview' ? 'Programme Overview' : cat.replace(/-/g, ' ')}
+                </button>
               );
             })}
           </div>
-        ))}
+
+          {showOverview && (
+            <div ref={overviewRef} style={{ background: 'var(--bg-card)', backdropFilter: 'blur(16px)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 18, fontWeight: 700 }}>Programme Overview</span>
+                <button onClick={() => setOverviewOpen(false)} style={{ padding: '6px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontSize: 13, background: 'var(--bg-secondary)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}>Back</button>
+              </div>
+              <div style={{ padding: '20px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                {overviewLoading ? <div style={{ color: 'var(--text-muted)' }}>Loading…</div> : overview ? overview.map((s, i) => sectionContent(s, i)) : <p style={{ color: 'var(--text-muted)' }}>Failed to load overview</p>}
+              </div>
+            </div>
+          )}
+
+          {!showOverview && (faqsLoading ? (
+            <div>{[1,2,3,4,5].map(i => <div key={i} style={{ height: 48, background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', marginBottom: 8 }} />)}</div>
+          ) : (
+            <div>
+              {!searchFaqIds && !activeCategory && topFaqs.length > 0 && (
+                <>
+                  <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)' }}>Trending FAQs</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 28 }}>
+                    {topFaqs.map(faq => (
+                      <div key={faq._id} onClick={() => document.querySelector(`details[data-faq-id="${faq._id}"]`)?.scrollIntoView({ behavior: 'smooth' })}
+                        style={{ padding: '10px 14px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 14, color: 'var(--text-primary)', transition: 'border-color 150ms ease' }}
+                        onMouseOver={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+                        onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+                        {faq.question}
+                      </div>
+                    ))}
+                  </div>
+                  <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)' }}>All FAQs</h3>
+                </>
+              )}
+              {activeCategory && <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'capitalize' }}>Showing: <strong style={{ color: 'var(--text-primary)' }}>{activeCategory.replace(/-/g, ' ')}</strong></p>}
+              {displayedFaqs.length === 0 && !faqsLoading && <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>{searchFaqIds ? 'No matching FAQs found.' : 'No FAQs in this category yet.'}</div>}
+              {displayedFaqs.map(faq => {
+                const matched = searchFaqIds?.includes(faq._id);
+                return (
+                  <details key={faq._id} data-faq-id={faq._id} open={!!matched || highlightedFaq === faq._id}
+                    ref={el => { if (el) faqRefs.current[faq._id] = el; }}
+                    onToggle={e => { if (!e.target.open && highlightedFaq === faq._id) setHighlightedFaq(null); }}
+                    style={{ display: searchFaqIds && !matched ? 'none' : 'block', background: matched ? 'var(--accent-light)' : 'var(--bg-card)', backdropFilter: 'blur(16px)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', marginBottom: 8, overflow: 'hidden' }}>
+                    <summary style={{ padding: '14px 20px', cursor: 'pointer', fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>{faq.question}</summary>
+                    <div style={{ padding: '0 20px 16px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{faq.answer}</div>
+                  </details>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+
+        <button onClick={() => navigate('/query')} title="Raise a Query" style={{ position: 'fixed', bottom: 100, right: 24, zIndex: 100, width: 56, height: 56, borderRadius: '50%', border: 'none', background: 'var(--accent)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.2)', transition: 'transform 150ms ease' }}
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            <line x1="12" y1="8" x2="12" y2="16" />
+            <line x1="8" y1="12" x2="16" y2="12" />
+          </svg>
+        </button>
+        <FaqAssistant />
       </div>
-      <button onClick={() => navigate('/query')} title="Raise a Query" style={{
-        position: 'fixed', bottom: 100, right: 24, zIndex: 100,
-        width: 56, height: 56, borderRadius: '50%', border: 'none',
-        background: 'var(--accent)', color: '#fff', cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.2)', transition: 'transform 150ms ease',
-        fontSize: 24, fontFamily: 'inherit'
-      }}
-        onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
-        onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          <line x1="12" y1="8" x2="12" y2="16" />
-          <line x1="8" y1="12" x2="16" y2="12" />
-        </svg>
-      </button>
-      <FaqAssistant />
     </div>
   );
 }
