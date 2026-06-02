@@ -544,24 +544,24 @@ const AdminArea = () => {
         borderRadius: 'var(--radius-md)', padding: '16px 20px'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             {a.isAccepted && (
               <span style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--success)', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, marginBottom: 8, display: 'inline-block' }}>
                 ✓ Accepted
               </span>
             )}
-            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>
+            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}>
               {a.author?.name || 'Unknown'}
-              <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--accent)' }}>⭐ {a.author?.points || 0} pts</span>
+              <span style={{ fontSize: 11, color: 'var(--accent)' }}>⭐ {a.author?.points || 0} pts</span>
               <RoleBadge role={a.author?.role || 'intern'} />
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
               {a.author?.email} · {new Date(a.createdAt).toLocaleString()}
             </div>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6, whiteSpace: 'pre-wrap' }}>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
               {a.content?.slice(0, 300)}{a.content?.length > 300 ? '...' : ''}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', wordBreak: 'break-word' }}>
               On: <strong>{a.question?.title || 'Deleted question'}</strong>
               <span style={{ marginLeft: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
   <span style={{ color: 'var(--text-muted)', fontWeight: 700 }}>▲</span> {a.upvotes?.length || 0}
