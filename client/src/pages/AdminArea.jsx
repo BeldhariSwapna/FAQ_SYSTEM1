@@ -78,6 +78,7 @@ const AdminArea = () => {
   const [selectedUsers, setSelectedUsers] = useState(new Set());
   const [selectedQueries, setSelectedQueries] = useState(new Set());
   const [respondModal, setRespondModal] = useState({ open: false, query: null, response: '' });
+  const [queryFilter, setQueryFilter] = useState('open');
 
   useEffect(() => { fetchData(); }, []);
 
@@ -232,8 +233,8 @@ const AdminArea = () => {
   const handlePromoteQueryToFaq = async (q) => {
     try {
       await adminService.createFaq({ question: q.question, answer: q.adminResponse || q.question, category: 'general' });
-      await api.delete(`/queries/${q._id}`);
-      alert('Promoted to FAQ and deleted from queries!');
+      await api.patch(`/queries/${q._id}/respond`, { status: 'resolved', response: q.adminResponse || q.question });
+      alert('Promoted to FAQ and resolved!');
       fetchData();
     } catch { alert('Failed to promote query to FAQ'); }
   };
@@ -483,6 +484,24 @@ const AdminArea = () => {
       {/* Unresolved Queries Tab */}
       {activeTab === 'unresolved queries' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Filter Toggle */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+            {['open', 'resolved'].map(f => (
+              <button key={f} onClick={() => setQueryFilter(f)} style={{
+                padding: '6px 16px', borderRadius: 20, border: 'none',
+                background: queryFilter === f ? 'var(--accent)' : 'var(--bg-secondary)',
+                color: queryFilter === f ? '#fff' : 'var(--text-secondary)',
+                fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                textTransform: 'capitalize',
+              }}>
+                {f === 'open' ? `🔴 Open (${queries.filter(q => q.status === 'open').length})` : `🟢 Resolved (${queries.filter(q => q.status === 'resolved').length})`}
+              </button>
+            ))}
+          </div>
+          {(() => {
+            const filtered = queries.filter(q => q.status === queryFilter);
+            return (
+              <>
           <div style={bulkBarStyle(selectedQueries.size)}>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{selectedQueries.size} selected</span>
             <button onClick={handleBulkDeleteQueries} style={{ padding: '6px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--error)', background: 'rgba(220,38,38,0.08)', color: 'var(--error)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>🗑 Delete Selected</button>
@@ -493,8 +512,8 @@ const AdminArea = () => {
               <span style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => toggleAll(queries, selectedQueries, setSelectedQueries)}>Select all</span>
             </div>
           )}
-          {queries.length === 0 && <p style={{ color: 'var(--text-muted)' }}>No unresolved queries 🎉</p>}
-          {queries.map(q => (
+          {filtered.length === 0 && <p style={{ color: 'var(--text-muted)' }}>No {queryFilter} queries.</p>}
+          {filtered.map(q => (
             <div key={q._id} style={{
               background: selectedQueries.has(q._id) ? 'var(--accent-light)' : 'var(--bg-card)',
               border: `1px solid ${selectedQueries.has(q._id) ? 'var(--accent)' : 'var(--border)'}`,
@@ -527,6 +546,8 @@ const AdminArea = () => {
               )}
             </div>
           ))}
+          </>);
+          })()}
         </div>
       )}
 
