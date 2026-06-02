@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { searchFAQs } from '../api/searchApi';
 
 export default function FaqAssistant() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -103,7 +105,7 @@ export default function FaqAssistant() {
                     ))}
                   </div>
                 )}
-                {msg.noAnswer && (
+                {msg.noAnswer && user.role !== 'admin' && user.role !== 'super_admin' && (
                   <button
                     className="ym-raise-btn"
                     onClick={() => {
