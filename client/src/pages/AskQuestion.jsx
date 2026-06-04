@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import questionService from '../services/questionService';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import RecentSearchesPanel from '../components/RecentSearchesPanel';
 
 const DRAFT_KEY = 'ask_question_draft';
 
@@ -14,6 +15,7 @@ const AskQuestion = () => {
   const [duplicates, setDuplicates] = useState([]);
   const [dupLoading, setDupLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const debounceRef = useRef(null);
 
   useEffect(() => {
@@ -24,6 +26,14 @@ const AskQuestion = () => {
       if (d) setDescription(d);
     }
   }, []);
+
+  useEffect(() => {
+    const prefillTitle = location.state?.prefillTitle;
+    if (prefillTitle && !title) {
+      setTitle(prefillTitle);
+      checkDuplicates(prefillTitle);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (!title && !description) return;
@@ -72,6 +82,11 @@ const AskQuestion = () => {
     setTitle('');
     setDescription('');
     setDuplicates([]);
+  };
+
+  const handleRecentSelect = (value) => {
+    setTitle(value);
+    checkDuplicates(value);
   };
 
   return (
@@ -143,6 +158,9 @@ const AskQuestion = () => {
             {draftSaved && <span style={{ fontSize: 12, color: 'var(--success)' }}>✓ Draft saved</span>}
           </div>
         </form>
+      </div>
+      <div style={{ marginTop: '1.25rem' }}>
+        <RecentSearchesPanel title="Reuse a recent search" onSelect={handleRecentSelect} />
       </div>
     </div>
   );

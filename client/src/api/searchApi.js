@@ -28,3 +28,13 @@ export async function sendFeedback(faqId, helpful) {
   const { data } = await api.post('/faqs/feedback', { faqId, helpful });
   return data;
 }
+
+export async function getRecentSearches() {
+  const { data } = await api.get('/search/recent');
+  return data;
+}
+
+export async function saveRecentSearch(query) {
+  const { data } = await api.post('/search/recent', { query });
+  return data;
+}

@@ -68,6 +68,11 @@ const userSchema = new mongoose.Schema(
         applied: { type: Boolean, default: false },
       }
     ],
+    // Recent searches (server-side cache for signed-in users)
+    recentSearches: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );

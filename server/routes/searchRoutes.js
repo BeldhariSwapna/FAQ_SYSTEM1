@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit');
 const searchController = require('../controllers/searchController');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { authenticateUser } = require('../middleware/auth');
 
 const router = Router();
 
@@ -40,5 +41,8 @@ const optionalAuth = async (req, res, next) => {
 
 router.post('/', searchLimiter, optionalAuth, searchController.search);
 router.get('/suggestions', suggestionLimiter, searchController.suggestions);
+// server-side recent searches (authenticated)
+router.get('/recent', authenticateUser, searchController.getRecentSearches);
+router.post('/recent', authenticateUser, searchController.saveRecentSearch);
 
 module.exports = router;

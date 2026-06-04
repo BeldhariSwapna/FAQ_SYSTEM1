@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import questionService from '../services/questionService';
+import RecentSearchesPanel from '../components/RecentSearchesPanel';
 
 const DashboardHome = () => {
   const [stats, setStats] = useState({ asked: 0, answered: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -46,6 +49,13 @@ const DashboardHome = () => {
           </div>
         </div>
       )}
+
+      <div style={{ marginTop: '1.5rem', maxWidth: '860px' }}>
+        <RecentSearchesPanel
+          title="Recent searches"
+          onSelect={(value) => navigate('/ask-question', { state: { prefillTitle: value } })}
+        />
+      </div>
     </div>
   );
 };

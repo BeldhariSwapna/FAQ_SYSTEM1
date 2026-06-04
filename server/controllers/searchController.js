@@ -119,3 +119,37 @@ exports.suggestions = async (req, res, next) => {
     next(err);
   }
 };
+
+// Get recent searches for authenticated user
+exports.getRecentSearches = async (req, res, next) => {
+  try {
+    if (!req.user) return res.json({ success: true, searches: [] });
+    const user = await req.user.populate('recentSearches'); // noop but ensures fresh
+    const searches = (user.recentSearches || []).slice(0, 10);
+    res.json({ success: true, searches });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Save a recent search for authenticated user
+exports.saveRecentSearch = async (req, res, next) => {
+  try {
+    const { query } = req.body;
+    if (!req.user) return res.status(401).json({ success: false, message: 'Authentication required' });
+    if (!query || typeof query !== 'string') {
+      return next(new AppError('Query is required', 400));
+    }
+    const trimmed = query.trim();
+    if (!trimmed) return res.json({ success: true, searches: req.user.recentSearches || [] });
+
+    // update user's recentSearches: unique, most recent first, limit 10
+    const existing = (req.user.recentSearches || []).filter((s) => s !== trimmed);
+    const next = [trimmed, ...existing].slice(0, 10);
+    req.user.recentSearches = next;
+    await req.user.save();
+    res.json({ success: true, searches: next });
+  } catch (err) {
+    next(err);
+  }
+};

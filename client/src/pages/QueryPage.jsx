@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import RecentSearchesPanel from '../components/RecentSearchesPanel';
 
 export default function QueryPage() {
   const { user, logout } = useAuth();
@@ -75,6 +76,10 @@ export default function QueryPage() {
   const selectStyle = { ...inputBase, cursor: 'pointer' };
   const textareaStyle = { ...inputBase, resize: 'vertical', minHeight: 90 };
 
+  const handleRecentSelect = (value) => {
+    setForm((prev) => ({ ...prev, question: value }));
+  };
+
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: '40px 20px' }}>
       <div style={{ ...bgCard }}>
@@ -128,6 +133,16 @@ export default function QueryPage() {
             />
           </div>
 
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? 'Submitting...' : 'Submit Query'}
+            </button>
+          </form>
+
+          <div style={{ marginTop: '1.5rem' }}>
+            <RecentSearchesPanel title="Recent searches" onSelect={handleRecentSelect} />
+          </div>
+        </div>
+      </main>
           <button type="submit" disabled={loading} style={{
             padding: '11px 24px', borderRadius: 'var(--radius-sm)', border: 'none',
             background: 'var(--accent)', color: '#fff', fontSize: 15, fontWeight: 600,
